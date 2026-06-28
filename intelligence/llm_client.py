@@ -57,3 +57,27 @@ def _openai(system: str, user: str) -> str:
         ],
     )
     return resp.choices[0].message.content or ""
+
+
+def complete_claude_knowledge(system: str, user: str) -> str:
+    """Always calls Claude (Anthropic) directly, with no evidence attached.
+    Used ONLY by the optional knowledge fallback
+    (intelligence/knowledge_fallback.py) for questions still Unknown after
+    research. Reuses the same ANTHROPIC_API_KEY as the main pipeline above —
+    no separate key needed."""
+    from config.settings import KNOWLEDGE_FALLBACK
+
+    if not KNOWLEDGE_FALLBACK.is_configured:
+        raise LLMNotConfigured("No ANTHROPIC_API_KEY configured for the Claude fallback.")
+
+    from anthropic import Anthropic
+
+    client = Anthropic(api_key=LLM.anthropic_api_key)
+    msg = client.messages.create(
+        model=KNOWLEDGE_FALLBACK.model,
+        max_tokens=300,
+        temperature=0.0,
+        system=system,
+        messages=[{"role": "user", "content": user}],
+    )
+    return "".join(block.text for block in msg.content if block.type == "text")

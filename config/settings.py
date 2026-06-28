@@ -89,9 +89,29 @@ class ScrapeConfig:
     )
 
 
+# --------------------------------------------------------------------------- #
+# Claude "general knowledge" fallback (optional, OFF by default)
+# --------------------------------------------------------------------------- #
+@dataclass(frozen=True)
+class KnowledgeFallbackConfig:
+    """Settings for the optional Claude fallback.
+
+    This reuses the SAME ANTHROPIC_API_KEY as the main LLM settings above —
+    no separate key needed. It's kept as its own config block only so the
+    on/off switch and model choice are separate from the main pipeline.
+    """
+    enabled: bool = os.getenv("CLAUDE_FALLBACK_ENABLED", "false").lower() == "true"
+    model: str = os.getenv("CLAUDE_FALLBACK_MODEL", "claude-sonnet-4-6")
+
+    @property
+    def is_configured(self) -> bool:
+        return bool(LLM.anthropic_api_key)
+
+
 LLM = LLMConfig()
 SEARCH = SearchConfig()
 SCRAPE = ScrapeConfig()
+KNOWLEDGE_FALLBACK = KnowledgeFallbackConfig()
 
 # Authority weighting used by the confidence engine. Higher = more trusted.
 # The official company website is intentionally the highest non-regulatory
@@ -113,5 +133,6 @@ SOURCE_AUTHORITY = {
     "linkedin": 0.7,
     "news_article": 0.65,
     "web": 0.5,
+    "ai_knowledge": 0.2,    # AI knowledge fallback — no real source, always low
     "unknown": 0.3,
 }

@@ -28,6 +28,7 @@ _STATUS_COLOR = {
     AnswerStatus.VERIFIED: colors.HexColor("#1a7f37"),
     AnswerStatus.ESTIMATED: colors.HexColor("#9a6700"),
     AnswerStatus.NEEDS_REVIEW: colors.HexColor("#9a6700"),
+    AnswerStatus.AI_KNOWLEDGE: colors.HexColor("#c0392b"),
     AnswerStatus.UNKNOWN: colors.HexColor("#6e7781"),
 }
 
@@ -128,15 +129,19 @@ def _question_block(r):
         ),
     ]
     if r.sources:
-        links = " &nbsp;·&nbsp; ".join(
-            f'<a href="{_escape(s.url)}" color="#1a4f8b">{_escape(s.title)}</a>'
-            for s in r.sources
-        )
+        links = " &nbsp;·&nbsp; ".join(_source_label(s) for s in r.sources)
         block.append(Paragraph("Sources: " + links, _META))
     block.append(HRFlowable(width="100%", thickness=0.4,
                             color=colors.HexColor("#e5e5e5"),
                             spaceBefore=4, spaceAfter=2))
     return block
+
+
+def _source_label(s) -> str:
+    # The ChatGPT fallback has no real URL to link to — show plain text instead.
+    if not s.url:
+        return _escape(s.title)
+    return f'<a href="{_escape(s.url)}" color="#1a4f8b">{_escape(s.title)}</a>'
 
 
 def _escape(text: str) -> str:

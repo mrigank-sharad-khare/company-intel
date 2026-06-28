@@ -17,6 +17,7 @@ _STATUS_COLOR = {
     AnswerStatus.ESTIMATED: "#9a6700",
     AnswerStatus.NEEDS_REVIEW: "#9a6700",
     AnswerStatus.UNKNOWN: "#6e7781",
+    AnswerStatus.AI_KNOWLEDGE: "#c0392b",  # distinct red — "unverified, check this"
 }
 
 
@@ -45,10 +46,15 @@ def _question(r) -> None:
         unsafe_allow_html=True,
     )
     if r.sources:
-        st.caption("Sources: " + " · ".join(f"[{s.title}]({s.url})" for s in r.sources))
+        st.caption("Sources: " + " · ".join(_source_label(s) for s in r.sources))
     if r.reasoning:
         st.caption(f"_{r.reasoning}_")
     st.divider()
+
+
+def _source_label(s) -> str:
+    # Some sources (the ChatGPT fallback) have no real URL to link to.
+    return f"[{s.title}]({s.url})" if s.url else s.title
 
 
 def _export(report: Report) -> None:

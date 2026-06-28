@@ -19,6 +19,11 @@ class AnswerStatus(str, Enum):
     ESTIMATED = "Estimated"
     UNKNOWN = "Unknown"
     NEEDS_REVIEW = "Needs Review"
+    # Answered with no evidence at all — straight from the AI's own training
+    # knowledge (the optional ChatGPT fallback). Always low confidence, never
+    # treated as a fact. Kept as its own status so it's never confused with
+    # an evidence-backed "Estimated" answer.
+    AI_KNOWLEDGE = "AI Knowledge (Unverified)"
 
 
 @dataclass

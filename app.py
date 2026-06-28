@@ -8,7 +8,7 @@ Run it with:  streamlit run app.py
 """
 import streamlit as st
 
-from config.settings import LLM, SEARCH
+from config.settings import KNOWLEDGE_FALLBACK, LLM, SEARCH
 from core.pipeline import generate_report
 from storage import database as db
 from ui import report_view, sidebar, styles
@@ -41,6 +41,12 @@ if page == "New Report":
         st.warning("No LLM key set — answers will be 'Unknown'. Add a key in .env.")
     if not SEARCH.is_configured:
         st.info("No web-search key set — research is limited to the company website.")
+    if KNOWLEDGE_FALLBACK.enabled and KNOWLEDGE_FALLBACK.is_configured:
+        st.info(
+            "Claude fallback is ON — any question still Unknown after research "
+            "will be filled in from the AI's general knowledge, clearly marked "
+            "'AI Knowledge (Unverified)' with low confidence and no real source."
+        )
 
     website = st.text_input("Company Website", placeholder="https://company.com")
 
@@ -87,9 +93,11 @@ elif page == "Settings":
     st.title("Settings")
     st.write("Settings live in the `.env` file. Current status:")
     st.code(
-        f"LLM provider:       {LLM.provider}\n"
-        f"LLM configured:     {LLM.is_configured}\n"
-        f"Search provider:    {SEARCH.provider}\n"
-        f"Search configured:  {SEARCH.is_configured}"
+        f"LLM provider:           {LLM.provider}\n"
+        f"LLM configured:         {LLM.is_configured}\n"
+        f"Search provider:       {SEARCH.provider}\n"
+        f"Search configured:     {SEARCH.is_configured}\n"
+        f"Claude fallback on:     {KNOWLEDGE_FALLBACK.enabled}\n"
+        f"Claude fallback ready:  {KNOWLEDGE_FALLBACK.is_configured}"
     )
     st.caption("Edit .env and restart the app to change these.")

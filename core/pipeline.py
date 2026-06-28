@@ -16,6 +16,12 @@ SECOND-LOOK RETRY
   per-section query — and is checked again against the trusted source list
   in config/sources.py. This only runs for questions that are still blank,
   so it doesn't spend extra search credits on anything that already worked.
+
+OPTIONAL CLAUDE FALLBACK
+  If still Unknown after that, and CLAUDE_FALLBACK_ENABLED=true in .env,
+  the question is asked directly to Claude with no evidence attached and
+  the answer is labelled "AI Knowledge (Unverified)". Off by default — see
+  intelligence/knowledge_fallback.py for the full explanation of the trade-off.
 """
 from __future__ import annotations
 
@@ -28,6 +34,7 @@ from ingestion.company_detector import detect_company_name
 from ingestion.page_discovery import discover_pages
 from ingestion.scraper import scrape
 from intelligence.answerer import answer_section
+from intelligence.knowledge_fallback import fill_unknowns_from_claude
 from research.evidence import (
     build_fallback_evidence, build_section_evidence, build_website_evidence,
 )
@@ -61,6 +68,7 @@ def generate_report(website: str, progress: Progress = _noop) -> Report:
         evidence = build_section_evidence(section.id, company, website_ev)
         results = answer_section(section, evidence)
         results = _retry_unknowns(section, company, evidence, results)
+        results = fill_unknowns_from_claude(company, results)
         report.results.extend(results)
 
     progress("Finishing up...", 0.97)
