@@ -103,6 +103,11 @@ SOURCE_AUTHORITY = {
     "government": 1.0,
     "secretary_of_state": 1.0,
     "regulatory": 1.0,
+    "legal": 0.95,          # court records (e.g. CourtListener, Justia)
+    "lobbying": 0.9,        # federal filings (e.g. OpenSecrets, FEC)
+    "patent": 0.9,          # patent offices (e.g. Google Patents, USPTO)
+    "registry": 0.85,       # business registries (e.g. OpenCorporates)
+    "sustainability": 0.75, # self-reported but cross-checked (e.g. CDP)
     "reuters": 0.85,
     "major_news": 0.8,
     "linkedin": 0.7,

@@ -20,23 +20,25 @@ class SearchResult:
     content: str
 
 
-def search(query: str) -> list[SearchResult]:
+def search(query: str, domains: list[str] | None = None) -> list[SearchResult]:
     if SEARCH.provider == "tavily" and SEARCH.tavily_api_key:
-        return _tavily_search(query)
+        return _tavily_search(query, domains)
     return []  # no provider configured -> empty, handled gracefully upstream
 
 
-def _tavily_search(query: str) -> list[SearchResult]:
+def _tavily_search(query: str, domains: list[str] | None = None) -> list[SearchResult]:
     try:
         from tavily import TavilyClient
     except ImportError:
         return []
     try:
         client = TavilyClient(api_key=SEARCH.tavily_api_key)
+        kwargs = {"include_domains": domains} if domains else {}
         resp = client.search(
             query=query,
             max_results=SEARCH.max_results_per_query,
             search_depth="basic",
+            **kwargs,
         )
         return [
             SearchResult(

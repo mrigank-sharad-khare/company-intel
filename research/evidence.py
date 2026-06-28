@@ -11,6 +11,7 @@ cannot invent answers.
 from __future__ import annotations
 
 from core.models import Evidence, Source
+from config.sources import domains_for_section, kind_for_domain
 from research.web_search import search
 
 # One focused search angle per section. {company} is filled in at run time.
@@ -28,14 +29,17 @@ SECTION_QUERIES = {
 
 
 def _classify(url: str) -> str:
-    """Decide how trustworthy a source is, based on its web address."""
+    """Decide how trustworthy a source is, based on its web address.
+    Checks our curated trusted-source list first, then falls back to
+    simple guesses for anything not on that list."""
+    trusted = kind_for_domain(url)
+    if trusted:
+        return trusted
     u = url.lower()
     if "sec.gov" in u:
         return "sec"
     if ".gov" in u:
         return "government"
-    if "reuters.com" in u:
-        return "reuters"
     if "linkedin.com" in u:
         return "linkedin"
     return "news_article"
@@ -55,22 +59,67 @@ def build_section_evidence(section_id: str, company: str,
                            website_ev: Evidence) -> Evidence:
     """Combine the shared website evidence with section-specific searches."""
     ev = Evidence()
+    seen_urls: set[str] = set()
 
     # 1. reuse the company website evidence
     for src, text in website_ev.chunks:
         ev.add(src, text)
+        seen_urls.add(src.url)
 
-    # 2. add a targeted public search for this section's topic
     template = SECTION_QUERIES.get(section_id)
-    if template:
-        for r in search(template.format(company=company)):
-            if r.content:
-                src = Source(
-                    title=r.title or r.url,
-                    url=r.url,
-                    kind=_classify(r.url),
-                    snippet=r.content[:200],
-                )
-                ev.add(src, r.content[:1500])
+    if not template:
+        return ev
+    query = template.format(company=company)
+
+    # 2. a general public search for this section's topic
+    _add_search_results(ev, search(query), seen_urls)
+
+    # 3. an EXTRA search restricted to our trusted primary sources for this
+    #    section (court records, regulators, etc.), if any apply here.
+    domains = domains_for_section(section_id)
+    if domains:
+        _add_search_results(ev, search(query, domains=domains), seen_urls)
+
+    return ev
+
+
+def _add_search_results(ev: Evidence, results, seen_urls: set[str]) -> None:
+    for r in results:
+        if not r.content or r.url in seen_urls:
+            continue
+        seen_urls.add(r.url)
+        src = Source(
+            title=r.title or r.url,
+            url=r.url,
+            kind=_classify(r.url),
+            snippet=r.content[:200],
+        )
+        ev.add(src, r.content[:1500])
+
+
+def build_fallback_evidence(section_id: str, company: str,
+                            question_texts: list[str],
+                            seen_urls: set[str]) -> Evidence:
+    """A second, more specific search for questions that are still
+    unanswered after the first pass.
+
+    Instead of the generic one-line-per-section query, this uses the actual
+    wording of the unanswered questions, then checks both the general web
+    and (if any apply to this section) our trusted primary sources again.
+    Only called for questions still marked Unknown, so it doesn't spend
+    extra search credits on things that already worked.
+    """
+    ev = Evidence()
+    if not question_texts:
+        return ev
+
+    # Keep the query a sane length — a handful of question topics is enough.
+    query = company + " " + " ".join(question_texts[:5])
+
+    _add_search_results(ev, search(query), seen_urls)
+
+    domains = domains_for_section(section_id)
+    if domains:
+        _add_search_results(ev, search(query, domains=domains), seen_urls)
 
     return ev
