@@ -38,7 +38,7 @@ if page == "New Report":
     )
 
     if not LLM.is_configured:
-        st.warning("No LLM key set — answers will be 'Unknown'. Add a key in .env.")
+        st.warning("No LLM key is set — answers will be 'Unknown'. Add a key in .env.")
     if not SEARCH.is_configured:
         st.info("No web-search key set — research is limited to the company website.")
     if KNOWLEDGE_FALLBACK.enabled and KNOWLEDGE_FALLBACK.is_configured:
